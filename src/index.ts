@@ -65,7 +65,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       }
     });
 
-    
+
     // ------------------------------------------------------------
     // Invisible floor for locomotion (must be a Mesh for IWSDK raycasting)
     // ------------------------------------------------------------

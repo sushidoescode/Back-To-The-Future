@@ -17,6 +17,26 @@ interface SplatInstance {
   animator: GaussianSplatAnimator | null;
 }
 
+type SplatHostObject3D = THREE.Object3D & {
+  __gaussianSplatTransformPatched?: boolean;
+};
+
+function patchHostTransformSync(object3D: THREE.Object3D): void {
+  const host = object3D as SplatHostObject3D;
+  if (host.__gaussianSplatTransformPatched) return;
+
+  host.rotation._onChange(() => {
+    host.quaternion.setFromEuler(host.rotation, false);
+  });
+  host.quaternion._onChange(() => {
+    host.rotation.setFromQuaternion(host.quaternion, undefined, false);
+  });
+
+  // Reapply the current Euler so future `.rotation` edits update the live ECS quaternion.
+  host.quaternion.setFromEuler(host.rotation, false);
+  host.__gaussianSplatTransformPatched = true;
+}
+
 
 // ------------------------------------------------------------
 // Component – marks an entity as a Gaussian Splat host
@@ -88,6 +108,10 @@ export class GaussianSplatLoaderSystem extends createSystem({
     };
 
     this.queries.splats.subscribe("qualify", (entity) => {
+      if (entity.object3D) {
+        patchHostTransformSync(entity.object3D);
+      }
+
       const autoLoad = entity.getValue(
         GaussianSplatLoader,
         "autoLoad",
